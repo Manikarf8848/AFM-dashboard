@@ -482,6 +482,196 @@ if uploaded_files:
     if optional_cols["Equipment ID"]:   tab_names.append("Equipment ID Analysis")
     tab_names += ["Hourly Trend", "Heatmap", "Raw Data", "📤 Export"]
 
+    # ── Help Panel ────────────────────────────────────────────────────────────
+    TAB_HELP = {
+        "🏆 Leaderboard": {
+            "icon": "🏆",
+            "summary": "Ranks all resolvers by average dwell time.",
+            "detail": (
+                "Shows every AFM resolver ranked from fastest to slowest. "
+                "Includes total andons handled, average resolve time, efficiency score, "
+                "and % within threshold. Highlights the Fastest, Most Active, and Most Efficient resolver. "
+                "Use the 3 filters at the top to hide specific resolvers (e.g. System), "
+                "show only selected resolvers, or narrow down by andon type."
+            ),
+        },
+        "👤 AFM Profile": {
+            "icon": "👤",
+            "summary": "Deep dive into a single resolver's performance.",
+            "detail": (
+                "Select any resolver to see their personal stats: total andons, avg time, median time, "
+                "efficiency score, and % within target. Shows daily trend charts, best and worst days, "
+                "andon type breakdown, and a full record table of every andon they resolved."
+            ),
+        },
+        "🔍 Root Cause": {
+            "icon": "🔍",
+            "summary": "Identifies the most recurring andon issues.",
+            "detail": (
+                "Highlights the top recurring andon type and its share of total volume. "
+                "Shows a breakdown table of all andon types with their volume, avg resolve time, and status. "
+                "Also includes peak hour analysis, week-over-week trend for the top 5 types, "
+                "top issue per zone (if Zone column present), and flags slow resolvers above threshold."
+            ),
+        },
+        "AFM Performance": {
+            "icon": "📋",
+            "summary": "Resolver × Andon Type cross table.",
+            "detail": (
+                "A pivot table showing each resolver's andon count and average dwell time broken down "
+                "by andon type. Cells are colour-coded green to red based on relative performance. "
+                "Includes a donut chart and horizontal bar chart for quick visual comparison."
+            ),
+        },
+        "By Andon Type": {
+            "icon": "📂",
+            "summary": "Daily breakdown by andon category.",
+            "detail": (
+                "Shows how many andons of each type were raised per day, along with the average resolve "
+                "time per day. Useful for spotting which andon types spike on specific dates. "
+                "Includes a donut chart and bar chart."
+            ),
+        },
+        "Weekly Breakdown": {
+            "icon": "📆",
+            "summary": "Week-over-week performance summary.",
+            "detail": (
+                "Breaks down andon counts and avg resolve times by ISO week number. "
+                "Shows both an Andon Type × Week table and a Resolver × Week table. "
+                "Also includes a System vs Non-System comparison by week, "
+                "and a bar chart of avg resolve time per resolver."
+            ),
+        },
+        "By Equipment Type": {
+            "icon": "🔧",
+            "summary": "Performance split by equipment category.",
+            "detail": (
+                "Available when your data includes an 'Equipment Type' column. "
+                "Shows daily andon counts and avg dwell times per equipment type. "
+                "Useful for identifying which equipment categories generate the most or slowest andons."
+            ),
+        },
+        "By Zone": {
+            "icon": "📍",
+            "summary": "Performance split by warehouse zone.",
+            "detail": (
+                "Available when your data includes a 'Zone' column. "
+                "Shows andon counts and avg dwell times broken down by zone per day. "
+                "Helps identify hotspot zones on the floor."
+            ),
+        },
+        "By Shift": {
+            "icon": "🔄",
+            "summary": "Day shift vs night shift comparison.",
+            "detail": (
+                "Available when your data includes a 'Shift' column. "
+                "Compares andon volume and resolve times between shifts. "
+                "Useful for identifying if one shift consistently underperforms."
+            ),
+        },
+        "Blocking Analysis": {
+            "icon": "🚧",
+            "summary": "Blocking vs non-blocking andon breakdown.",
+            "detail": (
+                "Available when your data includes a 'Blocking' column. "
+                "Shows how many andons were blocking vs non-blocking per resolver, "
+                "and compares average resolve times for each. "
+                "Blocking andons typically have a higher urgency impact on the floor."
+            ),
+        },
+        "Equipment ID Analysis": {
+            "icon": "🏷️",
+            "summary": "Top offending equipment by andon count.",
+            "detail": (
+                "Available when your data includes an 'Equipment ID' column. "
+                "Lists every piece of equipment and how many andons it generated per week. "
+                "Sorted by total andons to surface the most problematic equipment. "
+                "Includes a top 20 pie chart and avg dwell time bar chart."
+            ),
+        },
+        "Hourly Trend": {
+            "icon": "⏰",
+            "summary": "Andon volume and resolve time by hour of day.",
+            "detail": (
+                "Stacked bar chart showing how many andons of each type occur at each hour of the day, "
+                "overlaid with an avg dwell time line. Helps identify peak problem hours. "
+                "Also includes a daily trend chart showing total andons and avg resolve time per day."
+            ),
+        },
+        "Heatmap": {
+            "icon": "🌡️",
+            "summary": "Colour-coded resolver × andon type performance grid.",
+            "detail": (
+                "A heatmap where each cell shows the avg resolve time for a resolver-andon type combination. "
+                "Red = slow, green = fast. Quickly spots which resolver struggles with which andon type. "
+                "Also includes bar charts comparing resolver performance and andon type performance."
+            ),
+        },
+        "Raw Data": {
+            "icon": "📄",
+            "summary": "Full filtered record table with export.",
+            "detail": (
+                "Shows all resolved andon records matching your current filters. "
+                "You can scroll, sort, and inspect individual records. "
+                "Download as CSV or Excel (Excel includes a Leaderboard sheet)."
+            ),
+        },
+        "📤 Export": {
+            "icon": "📤",
+            "summary": "Download full multi-sheet Excel reports.",
+            "detail": (
+                "Generates two ready-to-share Excel workbooks based on your current filters: "
+                "a Daily Report (KPIs, AFM performance, andon type breakdown, leaderboard, raw data) "
+                "and a Weekly Report (weekly KPIs, andon type × week, AFM × week, system vs non-system). "
+                "Both include a Charts sheet with embedded visuals."
+            ),
+        },
+    }
+
+    with st.expander("❓ Help — What does each tab do?", expanded=False):
+        search_help = st.text_input(
+            "🔎 Search tabs...",
+            placeholder="e.g. resolver, zone, weekly, export...",
+            key="help_search"
+        )
+
+        query = search_help.strip().lower()
+        results = {
+            k: v for k, v in TAB_HELP.items()
+            if not query
+            or query in k.lower()
+            or query in v["summary"].lower()
+            or query in v["detail"].lower()
+        }
+
+        if not results:
+            st.warning("No tabs match your search. Try a different keyword.")
+        else:
+            cols_per_row = 2
+            keys = list(results.keys())
+            for i in range(0, len(keys), cols_per_row):
+                row_cols = st.columns(cols_per_row)
+                for j, col in enumerate(row_cols):
+                    if i + j >= len(keys):
+                        break
+                    name = keys[i + j]
+                    info = results[name]
+                    col.markdown(f"""
+                    <div style="background:{_bg2}; border-left:4px solid {_accent};
+                                border-radius:8px; padding:12px 16px; margin-bottom:10px;
+                                min-height:110px;">
+                        <div style="font-size:0.78rem; font-weight:800; color:{_accent};
+                                    text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+                            {info['icon']} {name}
+                        </div>
+                        <div style="font-size:0.85rem; font-weight:700; color:{_text}; margin-bottom:6px;">
+                            {info['summary']}
+                        </div>
+                        <div style="font-size:0.78rem; color:{_sub}; line-height:1.55;">
+                            {info['detail']}
+                        </div>
+                    </div>""", unsafe_allow_html=True)
+
     tabs = st.tabs(tab_names)
     tab = {n: t for n, t in zip(tab_names, tabs)}
 
