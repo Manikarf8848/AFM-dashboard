@@ -561,12 +561,15 @@ if uploaded_files:
         },
     }
 
-    if "show_help" not in st.session_state:
+   if "show_help" not in st.session_state:
         st.session_state.show_help = False
 
-    help_col, _ = st.columns([1, 8])
-    with help_col:
-        if st.button("❓ Help", use_container_width=True, key="help_btn"):
+    # ── Help button row ───────────────────────────────────────────────────────
+    btn_col, spacer = st.columns([2, 10])
+    with btn_col:
+        btn_label = "❓ Help  ▼" if not st.session_state.show_help else "❓ Help  ▲"
+        if st.button(btn_label, use_container_width=True, key="help_btn",
+                     type="secondary"):
             st.session_state.show_help = not st.session_state.show_help
 
     if st.session_state.show_help:
@@ -578,19 +581,19 @@ if uploaded_files:
             padding:20px 24px 16px 24px;
             margin-bottom:1rem;
             box-shadow: 0 8px 32px rgba(57,73,171,0.18);
-            animation: fadeUp 0.25s ease-out both;
         ">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div style="font-size:1.05rem; font-weight:800; color:{_text};">
-                    📖 Tab Guide — What does each tab do?
-                </div>
+            <div style="font-size:1.05rem; font-weight:800; color:{_text}; margin-bottom:4px;">
+                📖 Tab Guide — What does each tab do?
+            </div>
+            <div style="font-size:0.78rem; color:{_sub};">
+                Search below or scroll through all tabs.
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         search_help = st.text_input(
             "",
-            placeholder="🔎  Search tabs... e.g. resolver, zone, weekly, export",
+            placeholder="🔎  Search tabs...  e.g. resolver, zone, weekly, export",
             key="help_search",
             label_visibility="collapsed"
         )
@@ -636,13 +639,14 @@ if uploaded_files:
                         </div>
                     </div>""", unsafe_allow_html=True)
 
-        close_col, _ = st.columns([1, 8])
+        close_col, _ = st.columns([2, 10])
         with close_col:
             if st.button("✖ Close Help", use_container_width=True, key="help_close"):
                 st.session_state.show_help = False
                 st.rerun()
 
-    tabs = st.tabs(tab_names)
+    st.markdown("<br>", unsafe_allow_html=True)
+tabs = st.tabs(tab_names)
     tab = {n: t for n, t in zip(tab_names, tabs)}
 
     # ── Tab: Leaderboard ──────────────────────────────────────────────────────
