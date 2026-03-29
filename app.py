@@ -486,27 +486,60 @@ if uploaded_files:
     tab = {n: t for n, t in zip(tab_names, tabs)}
 
     # ── Tab: Leaderboard ──────────────────────────────────────────────────────
+    
+# ── Tab: Leaderboard ──────────────────────────────────────────────────────
     with tab["🏆 Leaderboard"]:
-        # only resolvers visible after exclude/search filters
-    lb = (fdf.groupby("Resolver")
-          .agg(Total_Andons=("Resolve_Min", "count"), Avg_Time=("Resolve_Min", "mean"))
-          .reset_index())
-    lb["Avg_Time"] = lb["Avg_Time"].round(2)
-    lb["Efficiency"] = (lb["Total_Andons"] / lb["Avg_Time"]).round(2)
+        st.markdown('<div class="sec-title">Filter Leaderboard</div>', unsafe_allow_html=True)
 
-    within_map = (fdf.groupby("Resolver")
-                  .apply(lambda g: g.apply(within_threshold, axis=1).mean() * 100)
-                  .round(1).reset_index())
-    within_map.columns = ["Resolver", "Within_Threshold"]
-    lb = lb.merge(within_map, on="Resolver", how="left")
+        all_lb_resolvers = sorted(fdf["Resolver"].unique().tolist())
 
-    lb = lb.sort_values("Avg_Time").reset_index(drop=True)
-    lb.index += 1
-    lb.index.name = "Rank"
+        col_show, col_hide = st.columns([1, 1])
+        with col_show:
+            selected_resolvers = st.multiselect(
+                "✅ Show only these resolvers (leave empty = show all)",
+                options=all_lb_resolvers,
+                default=[],
+                key="lb_show"
+            )
+        with col_hide:
+            hidden_resolvers = st.multiselect(
+                "🚫 Hide these resolvers",
+                options=all_lb_resolvers,
+                default=["System"] if "System" in all_lb_resolvers else [],
+                key="lb_hide"
+            )
 
-    fastest      = lb.iloc[0]["Resolver"]
-    most_active  = lb.nlargest(1, "Total_Andons").iloc[0]["Resolver"]
-    most_eff     = lb.nlargest(1, "Efficiency").iloc[0]["Resolver"]
+        lb_fdf = fdf.copy()
+        if selected_resolvers:
+            lb_fdf = lb_fdf[lb_fdf["Resolver"].isin(selected_resolvers)]
+        if hidden_resolvers:
+            lb_fdf = lb_fdf[~lb_fdf["Resolver"].isin(hidden_resolvers)]
+
+        if lb_fdf.empty:
+            st.warning("No resolvers match your filter. Please adjust your selection.")
+            st.stop()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        lb = (lb_fdf.groupby("Resolver")
+              .agg(Total_Andons=("Resolve_Min", "count"), Avg_Time=("Resolve_Min", "mean"))
+              .reset_index())
+        lb["Avg_Time"] = lb["Avg_Time"].round(2)
+        lb["Efficiency"] = (lb["Total_Andons"] / lb["Avg_Time"]).round(2)
+
+        within_map = (lb_fdf.groupby("Resolver")
+                      .apply(lambda g: g.apply(within_threshold, axis=1).mean() * 100)
+                      .round(1).reset_index())
+        within_map.columns = ["Resolver", "Within_Threshold"]
+        lb = lb.merge(within_map, on="Resolver", how="left")
+
+        lb = lb.sort_values("Avg_Time").reset_index(drop=True)
+        lb.index += 1
+        lb.index.name = "Rank"
+
+        fastest      = lb.iloc[0]["Resolver"]
+        most_active  = lb.nlargest(1, "Total_Andons").iloc[0]["Resolver"]
+        most_eff     = lb.nlargest(1, "Efficiency").iloc[0]["Resolver"]
 
         def assign_badge(r):
             badges = []
@@ -530,8 +563,8 @@ if uploaded_files:
         b1, b2, b3 = st.columns(3)
         for box, icon, title, name in [
             (b1, "⚡", "Fastest Resolver", fastest),
-            (b2, "🔥", "Most Active", most_active),
-            (b3, "🎯", "Most Efficient", most_eff),
+            (b2, "🔥", "Most Active",      most_active),
+            (b3, "🎯", "Most Efficient",   most_eff),
         ]:
             stats = lb[lb["Resolver"] == name].iloc[0]
             box.markdown(f"""
@@ -577,7 +610,6 @@ if uploaded_files:
         fig_lb.update_layout(height=400, xaxis_title="", yaxis_title="Avg Dwell Time (min)",
                              margin=dict(t=30, b=40, l=0, r=0))
         st.plotly_chart(fig_lb, use_container_width=True)
-
     # ── Tab: AFM Profile ──────────────────────────────────────────────────────
     with tab["👤 AFM Profile"]:
         st.markdown('<div class="sec-title">AFM Resolver Profile — Drill Down</div>', unsafe_allow_html=True)
